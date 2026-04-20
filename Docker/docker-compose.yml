@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  rabbit:
+    image: rabbitmq:3.12-management
+    ports:
+      - "5672:5672"   # порт для Celery
+      - "15672:15672" # веб-интерфейс RabbitMQ
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  worker:
+    build: .
+    depends_on:
+      - rabbit
+      - redis
+    volumes:
+      - .:/app  # монтируем папку для доступа к data.json
+    command: celery -A celery_app worker --loglevel=info
+
+  runner:
+    build: .
+    depends_on:
+      - worker
+    volumes:
+      - .:/app
+    command: python run_task.py
